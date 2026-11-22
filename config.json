@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "n_samples": 1200,
+  "noise": 0.16,
+  "test_fraction": 0.25,
+  "epochs": 150,
+  "hidden_dim": 64,
+  "learning_rates": {
+    "sgd": 0.08,
+    "momentum": 0.08,
+    "adam": 0.01,
+    "lbfgs": 0.8
+  },
+  "output_dir": "results"
+}
