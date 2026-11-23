@@ -1,3 +1,4 @@
+
 """Training and evaluation routines for optimizer experiments."""
 
 import torch
@@ -7,7 +8,7 @@ import torch.nn as nn
 def train_model(
     model,
     optimizer,
-    X_train,
+    x_train,
     y_train,
     epochs=100,
 ):
@@ -18,30 +19,47 @@ def train_model(
 
     for epoch in range(epochs):
         model.train()
-        optimizer.zero_grad()
 
-        outputs = model(X_train)
-        loss = criterion(outputs, y_train)
+        if isinstance(optimizer, torch.optim.LBFGS):
 
-        loss.backward()
-        optimizer.step()
+            def closure():
+                optimizer.zero_grad()
+                outputs = model(x_train)
+                loss = criterion(outputs, y_train)
+                loss.backward()
+                return loss
+
+            optimizer.step(closure)
+
+        else:
+            optimizer.zero_grad()
+            outputs = model(x_train)
+            loss = criterion(outputs, y_train)
+            loss.backward()
+            optimizer.step()
+
+        # Record the loss after the optimizer update.
+        model.eval()
+        with torch.no_grad():
+            outputs = model(x_train)
+            train_loss = criterion(outputs, y_train)
 
         history.append({
             "epoch": epoch + 1,
-            "loss": float(loss.item()),
+            "loss": float(train_loss.item()),
         })
 
     return history
 
 
-def evaluate_model(model, X_test, y_test):
+def evaluate_model(model, x_test, y_test):
     """Evaluate classification accuracy and loss."""
 
     criterion = nn.CrossEntropyLoss()
 
     model.eval()
     with torch.no_grad():
-        outputs = model(X_test)
+        outputs = model(x_test)
         loss = criterion(outputs, y_test)
         predictions = outputs.argmax(dim=1)
         accuracy = (predictions == y_test).float().mean()
