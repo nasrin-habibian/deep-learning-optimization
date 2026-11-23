@@ -1,68 +1,50 @@
 
-"""Training and evaluation routines for optimizer experiments."""
+"""Optimizer configurations for controlled training comparisons."""
 
 import torch
-import torch.nn as nn
 
 
-def train_model(
-    model,
-    optimizer,
-    x_train,
-    y_train,
-    epochs=100,
+def get_optimizer(
+    name,
+    parameters,
+    learning_rate=0.01,
+    weight_decay=0.0,
 ):
-    """Train a model and return its training history."""
+    """Create an optimizer by name."""
 
-    criterion = nn.CrossEntropyLoss()
-    history = []
+    name = name.lower()
 
-    for epoch in range(epochs):
-        model.train()
+    if name == "sgd":
+        return torch.optim.SGD(
+            parameters,
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
 
-        if isinstance(optimizer, torch.optim.LBFGS):
+    if name == "momentum":
+        return torch.optim.SGD(
+            parameters,
+            lr=learning_rate,
+            momentum=0.9,
+            weight_decay=weight_decay,
+        )
 
-            def closure():
-                optimizer.zero_grad()
-                outputs = model(x_train)
-                loss = criterion(outputs, y_train)
-                loss.backward()
-                return loss
+    if name == "adam":
+        return torch.optim.Adam(
+            parameters,
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
 
-            optimizer.step(closure)
+    if name == "lbfgs":
+        return torch.optim.LBFGS(
+            parameters,
+            lr=learning_rate,
+            max_iter=10,
+            history_size=10,
+        )
 
-            with torch.no_grad():
-                outputs = model(x_train)
-                loss = criterion(outputs, y_train)
-
-        else:
-            optimizer.zero_grad()
-            outputs = model(x_train)
-            loss = criterion(outputs, y_train)
-            loss.backward()
-            optimizer.step()
-
-        history.append({
-            "epoch": epoch + 1,
-            "loss": float(loss.item()),
-        })
-
-    return history
-
-
-def evaluate_model(model, x_test, y_test):
-    """Evaluate classification accuracy and loss."""
-
-    criterion = nn.CrossEntropyLoss()
-
-    model.eval()
-    with torch.no_grad():
-        outputs = model(x_test)
-        loss = criterion(outputs, y_test)
-        predictions = outputs.argmax(dim=1)
-        accuracy = (predictions == y_test).float().mean()
-
-    return {
-        "test_loss": float(loss.item()),
-        "test_accuracy": float(accuracy.item()),
-    }
+    raise ValueError(
+        f"Unknown optimizer: {name}. "
+        "Choose sgd, momentum, adam, or lbfgs."
+    )
